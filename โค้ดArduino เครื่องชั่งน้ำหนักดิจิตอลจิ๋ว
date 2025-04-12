@@ -1,0 +1,57 @@
+โค้ดจาก Arduino
+
+
+#include "HX711.h"
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Pin สำหรับ HX711
+#define DOUT 2
+#define CLK 3
+
+HX711 scale;
+LiquidCrystal_I2C lcd(0x27, 16, 2); // ตรวจสอบ address จริงของจอก่อน
+
+float calibration_factor = -105050.0; // ค่าที่ปรับตามเครื่องชั่ง
+
+void setup() {
+  Serial.begin(9600);
+  scale.begin(DOUT, CLK);
+  scale.set_scale(calibration_factor);
+  scale.tare();  // ตั้งน้ำหนักเริ่มต้นเป็น 0
+
+  lcd.begin(16, 2);
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Weight Scale");
+  delay(2000);
+  lcd.clear();
+
+  Serial.println("Current calibration factor:");
+  Serial.println(calibration_factor);
+  Serial.println("Place known weight on the scale.");
+}
+
+void loop() {
+  // อ่านค่าเฉลี่ยเพื่อลด noise (10 ค่า)
+  float weight = scale.get_units(10);
+
+  // ถ้า noise น้อยกว่า 0.05 ให้ถือว่าเป็น 0
+  if (abs(weight) < 0.05) {
+    weight = 0.0;
+  }
+
+  // แสดงใน Serial Monitor
+  Serial.print("Weight: ");
+  Serial.print(weight, 2);
+  Serial.println(" kg");
+
+  // แสดงใน LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Weight:         ");  // เคลียร์บรรทัด
+  lcd.setCursor(0, 1);
+  lcd.print(weight, 2);
+  lcd.print(" kg   ");            // เติมช่องว่างเพื่อเคลียร์ค่าเก่า
+
+  delay(1000);
+}
